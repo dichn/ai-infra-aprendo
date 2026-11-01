@@ -28,6 +28,16 @@ This supersedes older docs that describe a separate Tech Preview
 version before falling back to the manual steps in "Older/manual MCP
 wiring" below.
 
+## Architecture
+
+```mermaid
+flowchart LR
+    User["User (OCP Console / API)"] --> Lightspeed["Lightspeed Service (lightspeed-app-server)"]
+    Lightspeed -->|"OpenAI-compatible API"| DeepSeek["DeepSeek (deepseek-chat)"]
+    Lightspeed -->|"Streamable HTTPS /mcp"| MCPServer["openshift-mcp-server (in-cluster, auto-deployed)"]
+    MCPServer -->|"K8s API (user's own token)"| APIServer["OpenShift API Server"]
+```
+
 ## Step 1: Login
 
 ```bash
