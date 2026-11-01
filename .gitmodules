@@ -1,0 +1,3 @@
+[submodule "RHOAI-Toolkit"]
+	path = RHOAI-Toolkit
+	url = git@github.com:dichn/RHOAI-Toolkit.git
