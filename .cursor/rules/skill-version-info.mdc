@@ -1,0 +1,23 @@
+---
+description: Record version info when writing Cursor skills
+globs: .cursor/skills/**/SKILL.md
+alwaysApply: false
+---
+
+# Record Version Info in Skills
+
+When writing or updating a `SKILL.md`, always record the specific version(s)
+of the application, infrastructure, or platform the skill was written
+against (e.g. OpenShift 4.22, RHOAI 3.5, a specific operator channel/CSV
+version, a tool's major.minor version).
+
+- State versions explicitly near the top of the skill (overview or first
+  relevant step), not buried in a footnote.
+- If the skill covers a range of supported versions, state the range and
+  which version was actually verified.
+- If a behavior, flag, or manifest differs across versions, call that out
+  rather than silently documenting only the current one.
+- Prefer commands that let the reader confirm the version on their own
+  cluster/environment (e.g. `oc version`, `oc get clusterversion`,
+  `oc get csv -n <namespace>`) over hardcoding a version with no
+  verification path.
