@@ -30,12 +30,20 @@ wiring" below.
 
 ## Architecture
 
+Two independent context sources feed the LLM on every query: **RHOKP**
+(static product docs, via hybrid Solr+vector search) for "what does the
+doc say" questions, and the **MCP server** (live cluster state, via tool
+calls) for "what's happening right now" questions. DeepSeek sees both and
+decides what to use.
+
 ```mermaid
 flowchart LR
     User["User (OCP Console / API)"] --> Lightspeed["Lightspeed Service (lightspeed-app-server)"]
-    Lightspeed -->|"OpenAI-compatible API"| DeepSeek["DeepSeek (deepseek-chat)"]
+    Lightspeed -->|"hybrid search: keyword + vector"| RHOKP["RHOKP / Solr (static product docs)"]
     Lightspeed -->|"Streamable HTTPS /mcp"| MCPServer["openshift-mcp-server (in-cluster, auto-deployed)"]
     MCPServer -->|"K8s API (user's own token)"| APIServer["OpenShift API Server"]
+    Lightspeed -->|"OpenAI-compatible API + RAG context + tool results"| DeepSeek["DeepSeek (deepseek-chat)"]
+    DeepSeek -->|"answer"| Lightspeed
 ```
 
 ## Step 1: Login
