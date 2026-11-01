@@ -1,14 +1,17 @@
 ---
 description: Record created/last-updated timestamps when writing skills or other documentation
-globs: .cursor/skills/**/SKILL.md,**/docs/**/*.md,**/*.mdc
+globs: .cursor/skills/**/SKILL.md,**/docs/**/*.md,**/README.md
 alwaysApply: false
 ---
 
 # Record Created / Last Updated Timestamps
 
-When creating or editing a `SKILL.md`, `.mdc` rule, or other markdown
-documentation (guides, references, READMEs, PRDs, etc.), record when it was
-created and when it was last changed.
+When creating or editing a `SKILL.md` or other markdown documentation
+(guides, references, READMEs, PRDs, etc.), record when it was created and
+when it was last changed.
+
+This does **not** apply to `.cursor/rules/*.mdc` rule files -- rules stay
+timestamp-free.
 
 - Place a single metadata line near the top of the document, right after
   the title (or after a "Verified against" line if one exists):

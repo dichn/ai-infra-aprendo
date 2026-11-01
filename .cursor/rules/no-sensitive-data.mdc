@@ -1,13 +1,13 @@
 ---
-description: Never commit cluster info, credentials, or other sensitive data to this repo
+description: Never commit cluster info, credentials, customer info, or other sensitive data to this repo
 alwaysApply: true
 ---
 
 # No Sensitive Data in This Repo
 
-Never add real cluster info, passwords, tokens, keys, or other sensitive
-data to any tracked file in this repo -- including docs, notes, skills,
-rules, scripts, and commit messages.
+Never add real cluster info, passwords, tokens, keys, customer info, or
+other sensitive data to any tracked file in this repo -- including docs,
+notes, skills, rules, scripts, and commit messages.
 
 This includes (non-exhaustive):
 
@@ -17,6 +17,10 @@ This includes (non-exhaustive):
   specific environment (e.g. `<cluster>.<sandboxNNN>.opentlc.com`)
 - Usernames, emails, or console sign-in URLs tied to a specific account
 - Private keys, certificates, or ACME account secrets
+- **Customer info**: customer/company names, customer contacts, customer
+  AWS account IDs or cluster/domain names, support case/ticket numbers,
+  Slack/email threads, or any business/PII data tied to a specific
+  customer or engagement
 
 ## What to do instead
 
@@ -26,6 +30,9 @@ This includes (non-exhaustive):
 - In skills/rules/examples, use generic placeholders:
   `<cluster-name>.<base-domain>`, `rhoai-demo.example.com`,
   `<account-id>`, `<access-key-id>`.
+- **Never write a real customer/company name anywhere in this repo.** If a
+  customer must be referred to at all, use a generic industry placeholder
+  instead -- e.g. "XX Bank" or "XX Telecom" -- never their real name.
 - Reference credential files by path (`~/.aws/credentials`,
   `auth/kubeconfig`, `pull-secret.json`) rather than embedding their
   contents.
@@ -36,5 +43,6 @@ This includes (non-exhaustive):
 
 If a change touches `.cursor/`, docs, or scripts, scan the diff for
 account IDs, hostnames matching a real sandbox/cluster pattern, access
-keys (`AKIA...`), or `BEGIN ... PRIVATE KEY`/`CERTIFICATE` blocks before
-committing. When in doubt, ask rather than commit.
+keys (`AKIA...`), `BEGIN ... PRIVATE KEY`/`CERTIFICATE` blocks, or any
+customer/company name, ticket number, or contact info before committing.
+When in doubt, ask rather than commit.
