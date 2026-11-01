@@ -1,0 +1,40 @@
+---
+description: Never commit cluster info, credentials, or other sensitive data to this repo
+alwaysApply: true
+---
+
+# No Sensitive Data in This Repo
+
+Never add real cluster info, passwords, tokens, keys, or other sensitive
+data to any tracked file in this repo -- including docs, notes, skills,
+rules, scripts, and commit messages.
+
+This includes (non-exhaustive):
+
+- Kubeconfigs, `kubeadmin-password` files, service account tokens, API keys
+- AWS/cloud credentials: access key IDs, secret access keys, account IDs
+- Real cluster/domain names, hostnames, or IPs that identify a live or
+  specific environment (e.g. `<cluster>.<sandboxNNN>.opentlc.com`)
+- Usernames, emails, or console sign-in URLs tied to a specific account
+- Private keys, certificates, or ACME account secrets
+
+## What to do instead
+
+- Keep real environment details in files under `dichen/` (gitignored
+  personal notes), never in `.cursor/skills/`, `.cursor/rules/`, or other
+  tracked docs.
+- In skills/rules/examples, use generic placeholders:
+  `<cluster-name>.<base-domain>`, `rhoai-demo.example.com`,
+  `<account-id>`, `<access-key-id>`.
+- Reference credential files by path (`~/.aws/credentials`,
+  `auth/kubeconfig`, `pull-secret.json`) rather than embedding their
+  contents.
+- Add any new local credential/output directories (e.g. `.ocp-install/`)
+  to `.gitignore` before they're ever written to, not after.
+
+## Before committing
+
+If a change touches `.cursor/`, docs, or scripts, scan the diff for
+account IDs, hostnames matching a real sandbox/cluster pattern, access
+keys (`AKIA...`), or `BEGIN ... PRIVATE KEY`/`CERTIFICATE` blocks before
+committing. When in doubt, ask rather than commit.

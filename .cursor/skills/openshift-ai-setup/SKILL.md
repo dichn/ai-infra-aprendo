@@ -142,7 +142,9 @@ the script) create.
 6. **Wildcard TLS** -- creates a `letsencrypt-prod` `ClusterIssuer` (Route53
    DNS-01 solver using your AWS credentials) and a `default-gateway-tls`
    Certificate for `*.<apps-domain>`, applied to the Gateway API resources,
-   the IngressController (best-effort), and KServe.
+   the IngressController (best-effort -- confirm this actually landed, see
+   [openshift-console-self-signed-cert](../openshift-console-self-signed-cert/SKILL.md)),
+   and KServe.
 7. **RHCL stack** (if MaaS/RHCL not skipped) -- **this is "MaaS Phase 1"**:
    - OpenShift Service Mesh 3 Operator (its own InstallPlan needs manual
      approval even with `installPlanApproval: Automatic` on some channels
@@ -240,6 +242,10 @@ model is a separate manual flow:
 
 ## Troubleshooting
 
+- **Console/dashboard shows "Not Secure" / untrusted certificate in the
+  browser**: the wildcard-TLS step's `IngressController` patch is
+  best-effort and can silently fail -- see
+  [openshift-console-self-signed-cert](../openshift-console-self-signed-cert/SKILL.md).
 - **`ClusterPolicy` stuck on `NFDLabelsMissing`**: see
   [rhoai-toolkit-nfd-instance-missing](../rhoai-toolkit-nfd-instance-missing/SKILL.md).
 - **MaaS/inference Gateway unreachable (connection failure, not 404)**: see
