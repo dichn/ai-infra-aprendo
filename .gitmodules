@@ -1,3 +1,6 @@
 [submodule "RHOAI-Toolkit"]
 	path = RHOAI-Toolkit
 	url = git@github.com:dichn/RHOAI-Toolkit.git
+[submodule "app/rhoai-voice-bot"]
+	path = app/rhoai-voice-bot
+	url = git@github.com:dichn/rhoai-voice-bot.git
