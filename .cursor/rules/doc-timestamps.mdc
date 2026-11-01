@@ -1,0 +1,29 @@
+---
+description: Record created/last-updated timestamps when writing skills or other documentation
+globs: .cursor/skills/**/SKILL.md,**/docs/**/*.md,**/*.mdc
+alwaysApply: false
+---
+
+# Record Created / Last Updated Timestamps
+
+When creating or editing a `SKILL.md`, `.mdc` rule, or other markdown
+documentation (guides, references, READMEs, PRDs, etc.), record when it was
+created and when it was last changed.
+
+- Place a single metadata line near the top of the document, right after
+  the title (or after a "Verified against" line if one exists):
+
+  ```
+  **Created:** YYYY-MM-DD · **Last updated:** YYYY-MM-DD
+  ```
+
+- Use today's date (from the current session/system date) in `YYYY-MM-DD`
+  format.
+- **New document**: set both `Created` and `Last updated` to today's date.
+- **Editing an existing document**: keep `Created` unchanged, update
+  `Last updated` to today's date.
+- If a document already has a changelog/version-history section, you may
+  record the date there instead of adding a separate metadata line, but
+  don't do both.
+- Skip this for generated/imported files (e.g. PDF-to-markdown conversions)
+  that aren't hand-authored.
