@@ -32,8 +32,8 @@ disable-model-invocation: true
 ## Root cause
 
 `install_nfd_operator()` (in both
-[`lib/functions/install-common.sh`](../../../RHOAI-Toolkit/lib/functions/install-common.sh)
-and [`lib/functions/operators.sh`](../../../RHOAI-Toolkit/lib/functions/operators.sh))
+[`lib/functions/install-common.sh`](../../../third_party/rhoai-toolkit/lib/functions/install-common.sh)
+and [`lib/functions/operators.sh`](../../../third_party/rhoai-toolkit/lib/functions/operators.sh))
 short-circuits with "NFD Operator already installed" as soon as it finds an
 existing CSV in `openshift-nfd`:
 
@@ -71,7 +71,7 @@ oc get clusterpolicy gpu-cluster-policy -o yaml | grep -A3 "type: Ready"
 Apply the instance manifest directly:
 
 ```bash
-oc apply -f RHOAI-Toolkit/lib/manifests/operators/nfd-instance.yaml
+oc apply -f third_party/rhoai-toolkit/lib/manifests/operators/nfd-instance.yaml
 ```
 
 This creates the `nfd-worker` DaemonSet (one pod per non-master node by

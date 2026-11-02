@@ -16,7 +16,7 @@ disable-model-invocation: true
 **Verified against:** OpenShift 4.22.18, RHOAI-Toolkit (Oct-Nov 2026
 commits), `openshift-install`/`oc` 4.22.18, AWS provider. Confirm your own
 versions with `oc version`, `./openshift-install version`, and
-`git -C RHOAI-Toolkit log -1` before assuming behavior matches exactly.
+`git -C third_party/rhoai-toolkit log -1` before assuming behavior matches exactly.
 
 ## Overview
 
@@ -52,7 +52,7 @@ public key (any `~/.ssh/*.pub` works -- it doesn't have to be `id_rsa.pub`).
 Toolkit pre-flight check (interactive; prompts for region and may ask
 "Continue anyway? [y/N]" on warnings -- not scriptable as-is):
 ```bash
-cd RHOAI-Toolkit && ./scripts/check-aws-prerequisites.sh
+cd third_party/rhoai-toolkit && ./scripts/check-aws-prerequisites.sh
 ```
 
 For non-interactive verification, run the underlying checks directly: AWS
@@ -135,7 +135,7 @@ script that blocks on stdin and isn't automatable non-interactively.
 ## Step 4: `install-config.yaml`
 
 This is what the toolkit's `generate_install_config()` function
-([`scripts/openshift-installer-master.sh:1332`](../../../RHOAI-Toolkit/scripts/openshift-installer-master.sh))
+([`scripts/openshift-installer-master.sh:1332`](../../../third_party/rhoai-toolkit/scripts/openshift-installer-master.sh))
 produces -- generate it directly for non-interactive/scripted installs:
 
 ```yaml
@@ -247,7 +247,7 @@ oc get co   # all ClusterOperators should be Available
 ## Step 7: Add GPU worker nodes
 
 ```bash
-cd RHOAI-Toolkit
+cd third_party/rhoai-toolkit
 ./scripts/create-gpu-machineset.sh --instance-type <type> --replicas <n> --apply
 # other flags: --spot, --spot-max-price <price>, --az <zone>, --volume-size <gb>
 ```

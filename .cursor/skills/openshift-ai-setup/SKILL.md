@@ -52,7 +52,7 @@ already provisioned -- see
 ## Step 1: Run the installer
 
 ```bash
-cd RHOAI-Toolkit
+cd third_party/rhoai-toolkit
 export KUBECONFIG=<install-dir>/auth/kubeconfig
 ./scripts/install-rhoai-35.sh --channel stable-3.5
 # or via Makefile: make setup-rhoai-35 (no flag control)
