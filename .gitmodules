@@ -4,3 +4,6 @@
 [submodule "app/rhoai-voice-bot"]
 	path = app/rhoai-voice-bot
 	url = git@github.com:dichn/rhoai-voice-bot.git
+[submodule "third_party/openshift-ai-bootstrap"]
+	path = third_party/openshift-ai-bootstrap
+	url = git@github.com:dichn/openshift-ai-bootstrap.git
