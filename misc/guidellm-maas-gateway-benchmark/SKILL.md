@@ -21,6 +21,8 @@ Scripts: [`guidellm-deploy.sh`](../../scripts/guidellm-deploy.sh),
 [`guidellm-run.sh`](../../scripts/guidellm-run.sh),
 [`guidellm-summary.sh`](../../scripts/guidellm-summary.sh),
 [`maas-token-limit.sh`](../../scripts/maas-token-limit.sh) (`-h` for help).
+Ready-to-run example for `qwen3-8b-fp8-maas`: [`examples/guidellm-maas/`](../../examples/guidellm-maas/)
+(`deploy-guidellm.sh`, then `run-maas-benchmark.sh`).
 
 ## Architecture
 

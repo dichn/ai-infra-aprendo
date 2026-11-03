@@ -1,0 +1,41 @@
+# GuideLLM client pod for benchmarking demo/qwen3-8b-fp8-maas through the MaaS gateway.
+# The gateway hostname and ClusterIP differ per cluster, so they are template parameters:
+#   oc process -n demo -f guidellm.yaml -p MAAS_HOST=maas.apps.<domain> -p GATEWAY_IP=<cluster-ip> | oc apply -n demo -f -
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: guidellm-maas
+parameters:
+  - name: MAAS_HOST
+    required: true
+  - name: GATEWAY_IP
+    required: true
+objects:
+  - apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: guidellm-maas
+      namespace: demo
+      labels: {app: guidellm-maas}
+    spec:
+      replicas: 1
+      selector:
+        matchLabels: {app: guidellm-maas}
+      template:
+        metadata:
+          labels: {app: guidellm-maas}
+        spec:
+          # TLS SNI must be the gateway hostname; this keeps the traffic in-cluster.
+          hostAliases:
+            - ip: ${GATEWAY_IP}
+              hostnames: ["${MAAS_HOST}"]
+          containers:
+            - name: guidellm
+              image: ghcr.io/vllm-project/guidellm:v0.7.1
+              command: ["tail", "-f", "/dev/null"]
+              env:
+                - name: HF_HOME   # tokenizer downloaded from Hugging Face
+                  value: /tmp/hf
+              resources:
+                requests: {cpu: "2", memory: 2Gi}
+                limits: {memory: 8Gi}
