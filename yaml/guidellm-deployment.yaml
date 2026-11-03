@@ -1,0 +1,26 @@
+# GuideLLM client pod, an envsubst template rendered by `scripts/guidellm-deploy.sh`.
+# Unlike third_party/openshift-ai-bootstrap/yaml/demo/guidellm.yaml it has no PVC
+# (no RWX StorageClass needed): the deploy script copies the tokenizer from the model pod.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: guidellm
+  namespace: ${NAMESPACE}
+  labels: {app: guidellm}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: guidellm}
+  template:
+    metadata:
+      labels: {app: guidellm}
+    spec:
+      containers:
+        - name: guidellm
+          image: ${GUIDELLM_IMAGE}  # pinned upstream image; the skills use the 0.7 CLI
+          command: ["tail"]
+          args: ["-f", "/dev/null"]
+          resources:
+            # Not BestEffort: an eviction wipes /tmp (tokenizer, in-progress runs).
+            requests: {cpu: "2", memory: 2Gi}
+            limits: {memory: 8Gi}

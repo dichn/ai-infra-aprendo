@@ -71,3 +71,6 @@ frontend/.playwright-browsers/
 frontend/test-results/
 frontend/playwright-report/
 
+
+# GuideLLM benchmark output (scripts/guidellm-run.sh)
+/results/
