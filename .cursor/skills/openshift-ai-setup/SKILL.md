@@ -47,7 +47,9 @@ flowchart TD
 
 Prerequisite: a running OpenShift cluster, ideally with GPU worker nodes
 already provisioned -- see
-[aws-openshift-install](../aws-openshift-install/SKILL.md).
+[aws-openshift-install](../aws-openshift-install/SKILL.md) for the cluster
+and [aws-openshift-gpu-machineset](../aws-openshift-gpu-machineset/SKILL.md)
+for GPU nodes.
 
 ## Step 1: Run the installer
 

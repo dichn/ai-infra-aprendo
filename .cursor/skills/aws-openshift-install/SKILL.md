@@ -2,12 +2,13 @@
 name: aws-openshift-install
 description: >-
   Install a self-managed OpenShift cluster on AWS via IPI (Installer-
-  Provisioned Infrastructure) using RHOAI-Toolkit, including GPU worker
-  MachineSets. Covers both the toolkit commands to run and what actually
-  happens under the hood in AWS (VPC/subnets/ELB/Route53/EC2) and
-  Kubernetes (Machine API, CSR approval). Use when asked to create an
-  OpenShift cluster on AWS, provision GPU nodes, or debug an IPI
-  installation.
+  Provisioned Infrastructure) using RHOAI-Toolkit, including the
+  temporary-bastion pattern for slow networks. Covers both the commands to
+  run and what actually happens under the hood in AWS
+  (VPC/subnets/ELB/Route53/EC2) and Kubernetes (Machine API, CSR approval).
+  Use when asked to create an OpenShift cluster on AWS or debug an IPI
+  installation. GPU nodes are covered separately in
+  aws-openshift-gpu-machineset.
 disable-model-invocation: true
 ---
 
@@ -33,7 +34,7 @@ flowchart LR
     Installer --> Bootstrap["Bootstrap EC2 (temporary)"]
     Installer --> Masters["3x Master EC2"]
     Masters --> MachineAPI["Machine API (in-cluster)"]
-    MachineAPI --> Workers["Worker EC2 (incl. GPU MachineSets)"]
+    MachineAPI --> Workers["Worker EC2 (worker MachineSets)"]
     Bootstrap -.destroyed after bootstrap.-> Masters
 ```
 
@@ -64,15 +65,20 @@ hosted zones matching `*openshift-cluster*`, VPC/EIP quota headroom
 
 ## Step 2: Check instance type availability in your target region
 
-Not every AWS region has every instance type. Before picking masters/workers
-and GPU types, verify:
+Not every AWS region has every instance type. Before picking master/worker
+types, verify (and check the standard vCPU quota, `L-1216C47A`):
 ```bash
-for t in m6a.4xlarge g6e.xlarge g6e.2xlarge g6e.4xlarge; do
+for t in m6a.4xlarge t3.medium; do   # cluster nodes + bastion
   echo "$t: $(aws ec2 describe-instance-type-offerings --location-type availability-zone \
     --region <region> --filters Name=instance-type,Values=$t \
     --query 'InstanceTypeOfferings[].Location' --output text)"
 done
+aws service-quotas get-service-quota --region <region> --service-code ec2 --quota-code L-1216C47A --query 'Quota.Value'
 ```
+
+If you'll add GPU nodes later, also check now that the GPU type is offered
+in at least one of the cluster's AZs -- see
+[aws-openshift-gpu-machineset](../aws-openshift-gpu-machineset/SKILL.md).
 
 ## Step 3: Download `openshift-install` -- watch out for slow networks
 
@@ -100,7 +106,7 @@ script that blocks on stdin and isn't automatable non-interactively.
    ```bash
    aws ec2 describe-vpcs --region <region> --filters Name=is-default,Values=true --query 'Vpcs[0].VpcId' --output text
    ```
-   If no default VPC exists, create a minimal one: VPC (`create-vpc`) ->
+   Fresh sandbox accounts often have **no default VPC**. If none exists, create a minimal one: VPC (`create-vpc`) ->
    subnet with `--map-public-ip-on-launch` (`create-subnet` +
    `modify-subnet-attribute`) -> Internet Gateway (`create-internet-gateway`
    + `attach-internet-gateway`) -> route table with a `0.0.0.0/0` route to
@@ -117,19 +123,32 @@ script that blocks on stdin and isn't automatable non-interactively.
    `--associate-public-ip-address`. It only orchestrates API calls -- the
    actual cluster nodes are separate EC2 instances the installer creates in
    its own VPC.
-5. `scp` over `~/.aws/credentials`, the pull secret, and the SSH public key.
+5. `scp` over the pull secret and the SSH public key. For AWS credentials,
+   copy **only the target account's keys**, not your whole
+   `~/.aws/credentials` (which may hold other accounts' keys too):
+   ```bash
+   awk '/^\[<profile>\]/{f=1;print "[default]";next} /^\[/{f=0} f' ~/.aws/credentials \
+     | ssh ec2-user@<bastion-ip> 'mkdir -p ~/.aws && cat > ~/.aws/credentials && chmod 600 ~/.aws/credentials'
+   ```
    On the bastion, write `~/.aws/config` with the target region, download
-   `openshift-install-linux.tar.gz`, extract, `chmod +x`.
+   `openshift-install-linux-<version>.tar.gz` (and `openshift-client-linux-<version>.tar.gz`
+   for `oc`), extract.
 6. Generate `install-config.yaml` on the bastion (see Step 4) and run the
    install there (see Step 5).
-7. Once `auth/kubeconfig` and `auth/kubeadmin-password` are retrieved via
-   `scp`, **terminate the bastion** -- it is not needed again. All later `oc`
+7. `scp -r` the **whole install directory** back (not just `auth/`):
+   `metadata.json` is required for `openshift-install destroy cluster`.
+   Keep it in a **gitignored** directory (`chmod -R go-rwx`). Besides the kubeconfig and kubeadmin password,
+   `terraform.platform.auto.tfvars.json` contains the AWS access key ID
+   (inside a presigned S3 URL; the secret key is not in it).
+8. Then **terminate the bastion** -- it is not needed again. All later `oc`
    and AWS CLI commands work directly from your local machine since the API
    server and console are public endpoints.
    ```bash
    aws ec2 terminate-instances --region <region> --instance-ids <id>
-   aws ec2 delete-security-group --region <region> --group-id <sg-id>   # after termination completes
+   aws ec2 wait instance-terminated --region <region> --instance-ids <id>
+   aws ec2 delete-security-group --region <region> --group-id <sg-id>
    aws ec2 delete-key-pair --region <region> --key-name bastion-key
+   # if you created the bastion VPC: disassociate + delete route table, detach + delete IGW, delete subnet, delete VPC
    ```
 
 ## Step 4: `install-config.yaml`
@@ -180,13 +199,20 @@ Back it up (`cp install-config.yaml install-config.yaml.backup`) --
 
 ```bash
 nohup ./openshift-install create cluster --dir=<cluster-name>-install --log-level=info > install.log 2>&1 &
-tail -f install.log   # or poll periodically; takes 30-45 minutes (observed: 40m17s for a 3-master/3-worker m6a.4xlarge cluster)
+tail -f install.log   # or poll periodically; takes 40-50 minutes
 ```
+
+Observed for 3-master/3-worker `m6a.4xlarge` on 4.22.18: 40m17s and 48m44s
+across two installs.
 
 If running this over SSH on the bastion (not in a local agent/automation
 shell), plain `nohup ... & disown` is sufficient and survives SSH session
 drops, since the process lives on the remote host independent of your local
-shell/tool lifecycle.
+shell/tool lifecycle. When an automation tool starts it with
+`ssh host 'nohup ... &'`, the ssh call may stay attached until the install
+finishes even with output redirected. The installer is fine; just poll from
+a **separate** ssh (`ssh host 'tail -3 install.out'`) rather than waiting on
+the first one.
 
 ### What happens under the hood (IPI bootstrap lifecycle)
 
@@ -244,53 +270,6 @@ oc get nodes
 oc get co   # all ClusterOperators should be Available
 ```
 
-## Step 7: Add GPU worker nodes
-
-```bash
-cd third_party/rhoai-toolkit
-./scripts/create-gpu-machineset.sh --instance-type <type> --replicas <n> --apply
-# other flags: --spot, --spot-max-price <price>, --az <zone>, --volume-size <gb>
-```
-
-GPU instance type reference (AWS):
-
-| Type | GPU | vCPU | RAM |
-|---|---|---|---|
-| `g6.xlarge`/`2xlarge`/`4xlarge` | 1x NVIDIA L4 (24GB) | 4/8/16 | 16/32/64 GB |
-| `g6e.xlarge`/`2xlarge`/`4xlarge` | 1x NVIDIA L40S (48GB) | 4/8/16 | 16/32/64 GB |
-| `p5.4xlarge` | 1x NVIDIA H100 (80GB) | 16 | 256 GB |
-| `p5.48xlarge` | 8x NVIDIA H100 | 192 | 2048 GB |
-
-Each instance has exactly 1 GPU except the `.48xlarge` sizes -- to get N
-GPUs on single-GPU instance types, set `--replicas N`.
-
-### What a GPU MachineSet actually is
-
-A `MachineSet` is a declarative EC2 instance template (AMI, instance type,
-subnet, security groups, IAM profile -- in its `providerSpec`) living in
-`openshift-machine-api`. A GPU MachineSet differs from a regular worker's
-only in: `machine-role`/`machine-type` label values of `gpu-worker`, an
-added label `node-role.kubernetes.io/gpu-worker: ''`, a taint
-`nvidia.com/gpu:NoSchedule` (so only GPU-tolerating pods schedule there),
-and the `instanceType` field. The Machine API controller reconciles
-`MachineSet -> Machine -> EC2 instance -> Node` the same way for any
-MachineSet, GPU or not.
-
-```bash
-oc get machines -n openshift-machine-api -w
-oc get nodes -l node-role.kubernetes.io/gpu-worker
-```
-
-Day-2: stop/start the underlying EC2 instances (without deleting the
-Machine objects, for cost savings) with
-`./scripts/manage-gpu-nodes.sh stop|start`.
-
-Adding a GPU MachineSet is only half the story -- the node won't actually
-advertise `nvidia.com/gpu` as schedulable until NFD labels it and the GPU
-Operator's `ClusterPolicy` reconciles. If `ClusterPolicy` stays `notReady`
-with "No NFD labels found" even though the node is `Ready`, see
-[rhoai-toolkit-nfd-instance-missing](../rhoai-toolkit-nfd-instance-missing/SKILL.md).
-
 ## Common failure modes
 
 - **Route53 propagation delay**: DNS TTL can cause transient lookup
@@ -298,12 +277,22 @@ with "No NFD labels found" even though the node is `Ready`, see
 - **Insufficient service quota**: vCPU-per-instance-family limits can block
   the masters/workers from launching; check in Service Quotas console.
 - **VPC/EIP limits**: default is 5 of each; check via
-  `aws ec2 describe-vpcs`/`describe-addresses` count before installing.
-- **GPU instance unavailable in chosen AZ**: verify with
-  `describe-instance-type-offerings` (Step 2) *before* generating
-  `install-config.yaml`, since master/worker AZs and GPU AZs must overlap.
+  `aws ec2 describe-vpcs`/`describe-addresses` count before installing. A
+  3-AZ cluster uses 3 EIPs (one NAT gateway per AZ), so an account that
+  already runs one cluster can't fit a second 3-AZ cluster without a quota
+  increase.
 
-## Next step
+## Next steps
 
-Once the cluster and GPU nodes are up, install Red Hat OpenShift AI -- see
-[openshift-ai-setup](../openshift-ai-setup/SKILL.md).
+1. Trusted HTTPS for the console/OAuth: a fresh cluster serves the
+   ingress-operator's self-signed cert. Install the cert-manager Operator,
+   issue a Let's Encrypt wildcard for `*.apps.<cluster>.<domain>` via
+   Route53 DNS-01, and set `IngressController.spec.defaultCertificate`. See
+   [openshift-console-self-signed-cert](../openshift-console-self-signed-cert/SKILL.md).
+   On IPI, also set cert-manager's
+   `--dns01-recursive-nameservers-only --dns01-recursive-nameservers=8.8.8.8:53,1.1.1.1:53`
+   (`CertManager cluster` `spec.controllerConfig.overrideArgs`). The cluster's
+   private Route53 zone for `<cluster>.<domain>` otherwise hides the public
+   `_acme-challenge` TXT record from the self-check.
+2. GPU nodes: [aws-openshift-gpu-machineset](../aws-openshift-gpu-machineset/SKILL.md).
+3. Red Hat OpenShift AI: [openshift-ai-setup](../openshift-ai-setup/SKILL.md).
